@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>GlowUp AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  :root {
+    --orange: #FF6B00; --orange-light: #FF8C38; --orange-dim: #FF6B0022;
+    --bg: #0A0A0A; --bg2: #111111; --bg3: #1A1A1A; --bg4: #222222;
+    --border: #2A2A2A; --text: #F0F0F0; --text-muted: #888888; --text-dim: #555555;
+    --green: #4CAF50; --red: #F44336; --yellow: #FFC107;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { background:var(--bg); color:var(--text); font-family:'Outfit',sans-serif; min-height:100vh; overflow-x:hidden; }
+  #auth-screen { min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; background:radial-gradient(ellipse at top, #1a0f00 0%, #0A0A0A 60%); }
+  .auth-logo { font-family:'Bebas Neue',cursive; font-size:52px; letter-spacing:3px; color:var(--orange); margin-bottom:4px; text-shadow:0 0 40px #FF6B0066; }
+  .auth-tagline { font-size:13px; color:var(--text-muted); letter-spacing:2px; text-transform:uppercase; margin-bottom:40px; }
+  .auth-card { background:var(--bg2); border:1px solid var(--border); border-radius:20px; padding:32px 24px; width:100%; max-width:380px; }
+  .auth-tabs { display:flex; background:var(--bg3); border-radius:12px; padding:4px; margin-bottom:28px; }
+  .auth-tab { flex:1; text-align:center; padding:10px; border-radius:9px; font-size:14px; font-weight:600; cursor:pointer; color:var(--text-muted); transition:all 0.2s; }
+  .auth-tab.active { background:var(--orange); color:#fff; }
+  .input-group { margin-bottom:16px; }
+  .input-label { font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; display:block; }
+  .auth-input { width:100%; background:var(--bg3); border:1px solid var(--border); border-radius:12px; padding:14px 16px; color:var(--text); font-family:'Outfit',sans-serif; font-size:15px; outline:none; transition:border-color 0.2s; }
+  .auth-input:focus { border-color:var(--orange); }
+  .auth-btn { width:100%; background:var(--orange); color:#fff; border:none; border-radius:14px; padding:16px; font-family:'Bebas Neue',cursive; font-size:20px; letter-spacing:2px; cursor:pointer; margin-top:8px; transition:all 0.2s; box-shadow:0 4px 20px #FF6B0044; }
+  .auth-btn:hover { background:var(--orange-light); transform:translateY(-1px); }
+  .auth-btn:disabled { background:#444; box-shadow:none; cursor:not-allowed; transform:none; }
+  .auth-msg { font-size:13px; text-align:center; margin-top:12px; border-radius:10px; padding:10px; display:none; }
+  .auth-error { color:var(--red); background:#F4433611; border:1px solid #F4433633; }
+  .auth-success { color:var(--green); background:#4CAF5011; border:1px solid #4CAF5033; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .spinner { display:inline-block; width:18px; height:18px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin 0.8s linear infinite; vertical-align:middle; margin-right:8px; }
+  #verify-card { display:none; }
+  .verify-icon { font-size:44px; text-align:center; margin-bottom:12px; }
+  .verify-title { font-family:'Bebas Neue',cursive; font-size:26px; letter-spacing:2px; color:var(--orange); text-align:center; margin-bottom:8px; }
+  .verify-sub { font-size:13px; color:var(--text-muted); text-align:center; line-height:1.6; margin-bottom:20px; }
+  #paywall-screen { display:none; min-height:100vh; align-items:center; justify-content:center; padding:24px; background:radial-gradient(ellipse at top, #1a0f00 0%, #0A0A0A 60%); flex-direction:column; }
+  .paywall-card { background:var(--bg2); border:2px solid var(--orange); border-radius:20px; padding:32px 24px; width:100%; max-width:380px; text-align:center; }
+  .paywall-icon { font-size:52px; margin-bottom:12px; }
+  .paywall-title { font-family:'Bebas Neue',cursive; font-size:28px; color:var(--orange); letter-spacing:2px; margin-bottom:8px; }
+  .paywall-sub { font-size:14px; color:var(--text-muted); line-height:1.6; margin-bottom:24px; }
+  .paywall-features { text-align:left; margin-bottom:24px; display:flex; flex-direction:column; gap:8px; }
+  .paywall-feature { font-size:14px; color:var(--text-muted); }
+  .coming-soon-badge { background:#FF6B0022; border:1px solid var(--orange); border-radius:100px; padding:4px 14px; font-size:12px; font-weight:700; color:var(--orange); text-transform:uppercase; letter-spacing:1px; display:inline-block; margin-bottom:16px; }
+  #app-screen { display:none; min-height:100vh; }
+  .top-bar { position:sticky; top:0; z-index:100; background:var(--bg); border-bottom:1px solid var(--border); padding:14px 20px; display:flex; align-items:center; justify-content:space-between; }
+  .top-logo { font-family:'Bebas Neue',cursive; font-size:28px; color:var(--orange); letter-spacing:2px; }
+  .top-right { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .top-btn { background:var(--bg3); border:1px solid var(--border); color:var(--text-muted); border-radius:8px; padding:6px 12px; font-size:12px; cursor:pointer; font-family:'Outfit',sans-serif; transition:all 0.2s; font-weight:700; }
+  .top-btn:hover { border-color:var(--orange); color:var(--orange); }
+  .top-btn.active { background:var(--orange); color:#fff; border-color:var(--orange); }
+  .analyses-badge { background:var(--orange-dim); border:1px solid var(--orange); border-radius:8px; padding:5px 10px; font-size:12px; font-weight:700; color:var(--orange); }
+  .upload-strip { background:linear-gradient(135deg,#1a0a00,#111); border-bottom:1px solid var(--border); padding:20px; }
+  .section-label { font-size:11px; font-weight:700; color:var(--orange); text-transform:uppercase; letter-spacing:2px; margin-bottom:12px; }
+  .dual-upload-wrap { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .upload-slot-label { font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; text-align:center; }
+  .upload-zone { border:2px dashed var(--border); border-radius:16px; padding:20px; text-align:center; cursor:pointer; transition:all 0.3s; background:var(--bg3); position:relative; overflow:hidden; }
+  .upload-zone:hover, .upload-zone.drag-over { border-color:var(--orange); background:var(--orange-dim); }
+  .upload-zone input { display:none; }
+  .upload-icon { font-size:36px; margin-bottom:8px; }
+  .upload-text { font-size:15px; font-weight:600; color:var(--text); margin-bottom:4px; }
+  .upload-sub { font-size:12px; color:var(--text-muted); }
+  .upload-preview { display:none; position:relative; }
+  .upload-preview img { width:100%; max-height:240px; object-fit:cover; border-radius:12px; }
+  .change-btn { position:absolute; bottom:10px; right:10px; background:rgba(0,0,0,0.8); color:var(--orange); border:1px solid var(--orange); border-radius:8px; padding:6px 12px; font-size:12px; font-weight:600; cursor:pointer; font-family:'Outfit',sans-serif; }
+  .analyze-btn { width:100%; margin-top:14px; background:var(--orange); color:#fff; border:none; border-radius:14px; padding:16px; font-family:'Bebas Neue',cursive; font-size:22px; letter-spacing:3px; cursor:pointer; display:none; transition:all 0.2s; box-shadow:0 4px 24px #FF6B0055; }
+  .analyze-btn:hover { background:var(--orange-light); }
+  .analyze-btn:disabled { background:#444; box-shadow:none; cursor:not-allowed; }
+  .loading-screen { display:none; padding:40px 20px; text-align:center; }
+  .loading-orb { width:80px; height:80px; border-radius:50%; background:radial-gradient(circle,var(--orange),#8B3A00); margin:0 auto 24px; animation:pulse 1.5s ease-in-out infinite; box-shadow:0 0 40px #FF6B0066; }
+  @keyframes pulse { 0%,100%{transform:scale(1);opacity:1;} 50%{transform:scale(1.15);opacity:0.8;} }
+  .loading-text { font-family:'Bebas Neue',cursive; font-size:28px; color:var(--orange); letter-spacing:3px; margin-bottom:8px; }
+  .loading-sub { font-size:13px; color:var(--text-muted); }
+  .loading-steps { margin-top:28px; display:flex; flex-direction:column; gap:10px; text-align:left; }
+  .loading-step { display:flex; align-items:center; gap:12px; padding:12px 16px; background:var(--bg3); border-radius:10px; font-size:13px; color:var(--text-muted); border:1px solid var(--border); transition:all 0.3s; }
+  .loading-step.done { color:var(--text); border-color:var(--orange); }
+  .step-icon { font-size:18px; min-width:24px; }
+  #results-section { display:none; padding:20px; }
+  .verdict-box { background:var(--bg2); border:1px solid var(--border); border-left:3px solid var(--orange); border-radius:16px; padding:18px; margin-bottom:20px; font-size:14px; line-height:1.7; color:var(--text-muted); }
+  .verdict-title { font-size:11px; font-weight:700; color:var(--orange); text-transform:uppercase; letter-spacing:2px; margin-bottom:8px; }
+  .section-header { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .section-icon { width:36px; height:36px; background:var(--orange-dim); border:1px solid var(--orange); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; }
+  .section-title { font-family:'Bebas Neue',cursive; font-size:22px; letter-spacing:1px; }
+  .section-block { margin-bottom:24px; }
+  .ratings-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .rating-item { background:var(--bg2); border:1px solid var(--border); border-radius:14px; padding:14px; transition:border-color 0.2s; }
+  .rating-item:hover { border-color:var(--orange); }
+  .rating-name { font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; }
+  .rating-score { font-family:'Bebas Neue',cursive; font-size:30px; line-height:1; margin-bottom:6px; }
+  .rating-bar-wrap { background:var(--bg4); border-radius:100px; height:4px; overflow:hidden; }
+  .rating-bar { height:100%; border-radius:100px; transition:width 1.5s cubic-bezier(0.4,0,0.2,1); width:0%; }
+  .haircuts-list, .skin-list, .tips-list { display:flex; flex-direction:column; gap:12px; }
+  .haircut-item, .skin-item, .tip-item { background:var(--bg2); border:1px solid var(--border); border-radius:14px; padding:14px; transition:border-color 0.2s; }
+  .haircut-item:hover, .skin-item:hover, .tip-item:hover { border-color:var(--orange); }
+  .haircut-item { display:flex; align-items:center; gap:14px; }
+  .skin-issue-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  .skin-issue-name { font-size:15px; font-weight:700; display:flex; align-items:center; gap:8px; }
+  .skin-severity { font-size:11px; font-weight:700; padding:3px 10px; border-radius:100px; text-transform:uppercase; }
+  .severity-high { background:#F4433622; color:var(--red); }
+  .severity-med { background:#FFC10722; color:var(--yellow); }
+  .severity-low { background:#4CAF5022; color:var(--green); }
+  .skin-tip { font-size:13px; color:var(--text-muted); line-height:1.6; }
+  .skin-products { margin-top:10px; display:flex; flex-wrap:wrap; gap:6px; }
+  .skin-product-tag { background:var(--bg4); border:1px solid var(--border); border-radius:8px; padding:4px 10px; font-size:12px; color:var(--text-muted); }
+  .tip-item { display:flex; gap:14px; align-items:flex-start; }
+  .tip-num { font-family:'Bebas Neue',cursive; font-size:28px; color:var(--orange); line-height:1; min-width:28px; }
+  .tip-title { font-size:15px; font-weight:700; margin-bottom:4px; }
+  .tip-desc { font-size:13px; color:var(--text-muted); line-height:1.5; }
+  .tip-impact { display:flex; align-items:center; gap:6px; margin-top:8px; }
+  .tip-impact-bar { flex:1; background:var(--bg4); border-radius:100px; height:4px; overflow:hidden; }
+  .tip-impact-fill { height:100%; background:var(--green); border-radius:100px; transition:width 1.5s ease; width:0%; }
+  .haircut-badge { display:inline-block; background:var(--orange-dim); color:var(--orange); border-radius:6px; padding:3px 8px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-top:6px; }
+  .error-box { display:none; background:#F4433611; border:1px solid var(--red); border-radius:14px; padding:16px; margin:16px 20px; font-size:13px; color:var(--red); text-align:center; }
+  .bottom-spacer { height:40px; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(20px);} to{opacity:1;transform:translateY(0);} }
+  .fade-up { animation:fadeUp 0.5s ease forwards; opacity:0; }
+  .delay-1{animation-delay:0.1s;} .delay-2{animation-delay:0.2s;} .delay-3{animation-delay:0.3s;} .delay-4{animation-delay:0.4s;} .delay-5{animation-delay:0.5s;}
+  #journal-view { display:none; padding:20px; }
+  .journal-stat { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:14px; text-align:center; }
+  .journal-stat-label { font-size:10px; color:#888; letter-spacing:1px; text-transform:uppercase; margin-bottom:4px; }
+</style>
+</head>
+<body>
+
+<div id="auth-screen">
+  <div class="auth-logo">GlowUp AI</div>
+  <div class="auth-tagline">Your honest AI face analyst</div>
+  <div class="auth-card" id="main-auth-card">
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="switchTab('login')">Login</div>
+      <div class="auth-tab" onclick="switchTab('signup')">Sign Up</div>
+    </div>
+    <div id="login-form">
+      <div class="input-group"><label class="input-label">Email</label><input class="auth-input" type="email" id="login-email" placeholder="you@example.com" onkeydown="if(event.key==='Enter')handleLogin()"></div>
+      <div class="input-group"><label class="input-label">Password</label><input class="auth-input" type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')handleLogin()"></div>
+      <button class="auth-btn" id="login-btn" onclick="handleLogin()">LOGIN</button>
+    </div>
+    <div id="signup-form" style="display:none">
+      <div class="input-group"><label class="input-label">Username</label><input class="auth-input" type="text" id="signup-name" placeholder="YourName"></div>
+      <div class="input-group"><label class="input-label">Email</label><input class="auth-input" type="email" id="signup-email" placeholder="you@example.com"></div>
+      <div class="input-group"><label class="input-label">Password</label><input class="auth-input" type="password" id="signup-pass" placeholder="At least 6 characters" onkeydown="if(event.key==='Enter')handleSignup()"></div>
+      <button class="auth-btn" id="signup-btn" onclick="handleSignup()">CREATE ACCOUNT</button>
+    </div>
+    <div class="auth-msg auth-error" id="auth-error"></div>
+    <div class="auth-msg auth-success" id="auth-success"></div>
+  </div>
+  <div class="auth-card" id="verify-card">
+    <div class="verify-icon">✉️</div>
+    <div class="verify-title">Check Your Email</div>
+    <div class="verify-sub">We sent a confirmation link to <strong id="verify-email"></strong>.<br>Click it then come back to login.</div>
+    <button class="auth-btn" onclick="showMainCard()">BACK TO LOGIN</button>
+  </div>
+</div>
+
+<div id="paywall-screen">
+  <div class="paywall-card">
+    <div class="paywall-icon">🔥</div>
+    <div class="paywall-title">You've Used Your 5 Free Analyses</div>
+    <div class="paywall-sub">Upgrade to keep analyzing and tracking your glow up progress.</div>
+    <div class="coming-soon-badge">Payments coming soon</div>
+    <div class="paywall-features">
+      <div class="paywall-feature">✅ Unlimited analyses</div>
+      <div class="paywall-feature">✅ Full GlowUp Journal</div>
+      <div class="paywall-feature">✅ Detailed recommendations</div>
+      <div class="paywall-feature">✅ Progress tracking</div>
+    </div>
+    <p style="font-size:13px;color:var(--text-dim);text-align:center;margin-bottom:16px;">Payment system coming soon!</p>
+    <button class="auth-btn" onclick="handleLogout()" style="background:var(--bg3);color:var(--text-muted);box-shadow:none;">Logout</button>
+  </div>
+</div>
+
+<div id="app-screen">
+  <div class="top-bar">
+    <div class="top-logo">GlowUp AI</div>
+    <div class="top-right">
+      <button class="top-btn active" id="btn-analyze" onclick="showTab('analyze')">Analyze</button>
+      <button class="top-btn" id="btn-journal" onclick="showTab('journal')">📓 Journal</button>
+      <span class="analyses-badge" id="analyses-badge">5 left</span>
+      <span style="font-size:13px;font-weight:600;color:var(--text-muted)" id="user-label"></span>
+      <button class="top-btn" onclick="handleLogout()">Logout</button>
+    </div>
+  </div>
+
+  <div id="analyze-view">
+    <div class="upload-strip">
+      <div class="section-label">📸 Analyze Your Look</div>
+      <div style="font-size:12px;color:var(--text-dim);margin-bottom:14px;">Upload both photos for maximum accuracy</div>
+      <div class="dual-upload-wrap">
+        <div>
+          <div class="upload-slot-label">😐 Front View</div>
+          <div class="upload-zone" onclick="triggerUpload('front')" ondrop="handleDrop(event,'front')" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+            <input type="file" id="fi-front" accept="image/*" onchange="handleFileSelect(event,'front')">
+            <div id="ph-front"><div class="upload-icon">🤳</div><div class="upload-text">Front Photo</div><div class="upload-sub">Look straight at camera</div></div>
+            <div class="upload-preview" id="pv-front"><img id="pi-front" src="" alt=""><button class="change-btn" onclick="triggerUpload('front');event.stopPropagation()">Change</button></div>
+          </div>
+        </div>
+        <div>
+          <div class="upload-slot-label">😶 Side Profile</div>
+          <div class="upload-zone" onclick="triggerUpload('side')" ondrop="handleDrop(event,'side')" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+            <input type="file" id="fi-side" accept="image/*" onchange="handleFileSelect(event,'side')">
+            <div id="ph-side"><div class="upload-icon">🫡</div><div class="upload-text">Side Profile</div><div class="upload-sub">Head straight, from the side</div></div>
+            <div class="upload-preview" id="pv-side"><img id="pi-side" src="" alt=""><button class="change-btn" onclick="triggerUpload('side');event.stopPropagation()">Change</button></div>
+          </div>
+        </div>
+      </div>
+      <div id="upload-hint" style="text-align:center;font-size:12px;color:var(--text-dim);margin-top:10px;">At least 1 photo required • Both = more accurate rating</div>
+      <button class="analyze-btn" id="analyze-btn" onclick="startAnalysis()">🔍 ANALYZE MY LOOK</button>
+    </div>
+    <div class="error-box" id="error-box"></div>
+    <div class="loading-screen" id="loading-screen">
+      <div class="loading-orb"></div>
+      <div class="loading-text">DEEP ANALYSIS</div>
+      <div class="loading-sub">AI is analyzing every detail</div>
+      <div id="loading-timer" style="font-family:'Bebas Neue',cursive;font-size:22px;color:var(--orange);margin:12px 0 4px;">0s</div>
+      <div class="loading-steps">
+        <div class="loading-step" id="step-1"><span class="step-icon">⏳</span> Mapping facial bone structure</div>
+        <div class="loading-step" id="step-2"><span class="step-icon">⏳</span> Analyzing PSL metrics & ratios</div>
+        <div class="loading-step" id="step-3"><span class="step-icon">⏳</span> Scanning skin & facial features</div>
+        <div class="loading-step" id="step-4"><span class="step-icon">⏳</span> Finding personalized haircuts</div>
+        <div class="loading-step" id="step-5"><span class="step-icon">⏳</span> Building your looksmax plan</div>
+      </div>
+    </div>
+    <div id="results-section">
+      <div class="section-block fade-up" style="padding:20px 20px 0">
+        <div style="background:#111;border:2px solid var(--orange);border-radius:20px;overflow:hidden;">
+          <img id="result-photo" src="" alt="" style="width:100%;display:block;border-radius:18px 18px 0 0;max-height:400px;object-fit:cover;object-position:top;">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-top:1px solid #333;">
+            <div style="padding:16px 12px;border-right:1px solid #333;text-align:center;"><div style="font-size:10px;font-weight:700;color:#888;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">PSL</div><div id="asc-psl" style="font-family:'Bebas Neue',cursive;font-size:36px;color:var(--orange);line-height:1;">0.0</div></div>
+            <div style="padding:16px 12px;border-right:1px solid #333;text-align:center;"><div style="font-size:10px;font-weight:700;color:#888;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">RATING</div><div id="asc-tier" style="font-family:'Bebas Neue',cursive;font-size:22px;color:var(--orange);line-height:1;">—</div></div>
+            <div style="padding:16px 12px;text-align:center;"><div style="font-size:10px;font-weight:700;color:#888;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">METRICS</div><canvas id="donut-chart" width="60" height="60" style="display:block;margin:0 auto;"></canvas></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-top:1px solid #333;">
+            <div style="padding:12px;border-right:1px solid #333;text-align:center;"><div style="font-size:10px;font-weight:700;color:#888;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;">PERCENTILE</div><div id="asc-percentile" style="font-family:'Bebas Neue',cursive;font-size:28px;color:var(--orange);">—</div></div>
+            <div style="padding:12px;border-right:1px solid #333;text-align:center;"><div style="font-size:10px;font-weight:700;color:#888;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;">POTENTIAL</div><div id="asc-potential" style="font-family:'Bebas Neue',cursive;font-size:22px;color:var(--orange);">—</div></div>
+            <div style="padding:12px;text-align:left;"><div style="font-size:10px;color:#4CAF50;margin-bottom:3px;">● Optimal (<span id="leg-opt">0</span>)</div><div style="font-size:10px;color:#FFC107;margin-bottom:3px;">● OK (<span id="leg-acc">0</span>)</div><div style="font-size:10px;color:#F44336;">● Weak (<span id="leg-bad">0</span>)</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="section-block fade-up delay-1" style="padding:16px 20px 0"><div class="verdict-box"><div class="verdict-title">🎯 AI Verdict</div><div id="verdict-text"></div></div></div>
+      <div class="section-block fade-up delay-2" style="padding:16px 20px 0"><div class="section-header"><div class="section-icon">📊</div><div class="section-title">Facial Feature Ratings</div></div><div class="ratings-grid" id="ratings-grid"></div></div>
+      <div class="section-block fade-up delay-3" style="padding:16px 20px 0"><div class="section-header"><div class="section-icon">✂️</div><div class="section-title">Best Haircuts For You</div></div><div class="haircuts-list" id="haircuts-list"></div></div>
+      <div class="section-block fade-up delay-4" style="padding:16px 20px 0"><div class="section-header"><div class="section-icon">🔬</div><div class="section-title">Skin Analysis</div></div><div class="skin-list" id="skin-list"></div></div>
+      <div class="section-block fade-up delay-5" style="padding:16px 20px 0"><div class="section-header"><div class="section-icon">⚡</div><div class="section-title">How To Reach Your Potential</div></div><div class="tips-list" id="tips-list"></div></div>
+      <div style="text-align:center;padding:20px;"><button onclick="resetApp()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-muted);border-radius:12px;padding:12px 24px;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;cursor:pointer;">🔄 Analyze Again</button></div>
+      <div class="bottom-spacer"></div>
+    </div>
+  </div>
+
+  <div id="journal-view">
+    <div style="padding:20px;">
+      <div style="font-family:'Bebas Neue',cursive;font-size:28px;letter-spacing:2px;color:var(--orange);margin-bottom:4px;">📓 GlowUp Journal</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:20px;">Your progress over time</div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:16px;"><div class="section-label" style="margin-bottom:12px;">PSL Score Over Time</div><canvas id="journal-chart" height="140" style="width:100%;display:none;"></canvas><div id="journal-chart-empty" style="text-align:center;color:var(--text-dim);font-size:13px;padding:30px 0;">No entries yet.</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;">
+        <div class="journal-stat"><div class="journal-stat-label">Best Score</div><div id="journal-best" style="font-family:'Bebas Neue',cursive;font-size:28px;color:var(--green);">—</div></div>
+        <div class="journal-stat"><div class="journal-stat-label">Latest</div><div id="journal-latest" style="font-family:'Bebas Neue',cursive;font-size:28px;color:var(--orange);">—</div></div>
+        <div class="journal-stat"><div class="journal-stat-label">Progress</div><div id="journal-delta" style="font-family:'Bebas Neue',cursive;font-size:28px;color:var(--orange);">—</div></div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:16px;"><div class="section-label" style="margin-bottom:12px;">History</div><div id="journal-entries" style="display:flex;flex-direction:column;gap:10px;"></div><div id="journal-empty" style="text-align:center;color:var(--text-dim);font-size:13px;padding:20px 0;">No entries yet.</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL='https://jmfiibhhpfznwqpoigrm.supabase.co';
+const SUPABASE_ANON_KEY='sb_publishable_acRLVh4U_jqrk0qYQg0SDA_E9FZo9aH';
+const FREE_ANALYSES=5;
+const API_URL='/.netlify/functions/analyze';
+const supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+let currentUser=null,analysesUsed=0,uploadedFrontB64=null,uploadedSideB64=null;
+
+function switchTab(tab){document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('active',(i===0&&tab==='login')||(i===1&&tab==='signup')));document.getElementById('login-form').style.display=tab==='login'?'block':'none';document.getElementById('signup-form').style.display=tab==='signup'?'block':'none';showMsg('error','');showMsg('success','');}
+function showMsg(type,msg){const el=document.getElementById('auth-'+type);el.textContent=msg;el.style.display=msg?'block':'none';}
+function showMainCard(){document.getElementById('main-auth-card').style.display='block';document.getElementById('verify-card').style.display='none';switchTab('login');}
+function setBtnLoading(id,loading,label){const btn=document.getElementById(id);btn.disabled=loading;btn.innerHTML=loading?'<span class="spinner"></span>Loading...':label;}
+
+async function handleSignup(){
+  const name=document.getElementById('signup-name').value.trim(),email=document.getElementById('signup-email').value.trim(),pass=document.getElementById('signup-pass').value;
+  showMsg('error','');showMsg('success','');
+  if(!name||!email||!pass)return showMsg('error','Please fill in all fields.');
+  if(pass.length<6)return showMsg('error','Password must be at least 6 characters.');
+  setBtnLoading('signup-btn',true,'CREATE ACCOUNT');
+  const{data,error}=await supabase.auth.signUp({email,password:pass,options:{data:{username:name}}});
+  setBtnLoading('signup-btn',false,'CREATE ACCOUNT');
+  if(error)return showMsg('error',error.message);
+  if(data.session)return;
+  document.getElementById('verify-email').textContent=email;
+  document.getElementById('main-auth-card').style.display='none';
+  document.getElementById('verify-card').style.display='block';
+}
+
+async function handleLogin(){
+  const email=document.getElementById('login-email').value.trim(),pass=document.getElementById('login-pass').value;
+  showMsg('error','');
+  if(!email||!pass)return showMsg('error','Please fill in all fields.');
+  setBtnLoading('login-btn',true,'LOGIN');
+  const{error}=await supabase.auth.signInWithPassword({email,password:pass});
+  setBtnLoading('login-btn',false,'LOGIN');
+  if(error){if(error.message.includes('Email not confirmed'))return showMsg('error','Please confirm your email first.');return showMsg('error','Wrong email or password.');}
+}
+
+async function handleLogout(){await supabase.auth.signOut();currentUser=null;document.getElementById('app-screen').style.display='none';document.getElementById('paywall-screen').style.display='none';document.getElementById('auth-screen').style.display='flex';showMainCard();resetApp();}
+
+async function enterApp(user){
+  currentUser=user;
+  const username=user.user_metadata?.username||user.email.split('@')[0];
+  document.getElementById('user-label').textContent=username;
+  const key='glowup_analyses_'+user.id;
+  analysesUsed=parseInt(localStorage.getItem(key)||'0');
+  if(analysesUsed>=FREE_ANALYSES){document.getElementById('auth-screen').style.display='none';document.getElementById('paywall-screen').style.display='flex';return;}
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('app-screen').style.display='block';
+  updateAnalysesBadge();renderJournal();
+}
+
+function updateAnalysesBadge(){const left=FREE_ANALYSES-analysesUsed;const badge=document.getElementById('analyses-badge');badge.textContent=left+' free left';badge.style.color=left<=1?'var(--red)':'var(--orange)';}
+function incrementAnalyses(){analysesUsed++;localStorage.setItem('glowup_analyses_'+currentUser.id,analysesUsed);updateAnalysesBadge();}
+
+supabase.auth.onAuthStateChange((event,session)=>{if(session?.user){if(document.getElementById('app-screen').style.display!=='block'&&document.getElementById('paywall-screen').style.display!=='flex'){enterApp(session.user);}}});
+(async()=>{const{data:{session}}=await supabase.auth.getSession();if(session?.user)enterApp(session.user);})();
+
+function triggerUpload(slot){document.getElementById('fi-'+slot).click();}
+function handleDragOver(e){e.preventDefault();e.currentTarget.classList.add('drag-over');}
+function handleDragLeave(e){e.currentTarget.classList.remove('drag-over');}
+function handleDrop(e,slot){e.preventDefault();e.currentTarget.classList.remove('drag-over');if(e.dataTransfer.files[0])processFile(e.dataTransfer.files[0],slot);}
+function handleFileSelect(e,slot){if(e.target.files[0])processFile(e.target.files[0],slot);}
+function processFile(file,slot){if(!file.type.startsWith('image/'))return;const reader=new FileReader();reader.onload=e=>{const img=new Image();img.onload=()=>{const canvas=document.createElement('canvas');const MAX=1080;let w=img.width,h=img.height;if(w>MAX||h>MAX){if(w>h){h=Math.round(h*MAX/w);w=MAX;}else{w=Math.round(w*MAX/h);h=MAX;}}canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);const compressed=canvas.toDataURL('image/jpeg',0.85);const b64=compressed.replace(/^data:image\/\w+;base64,/,'');if(slot==='front'){uploadedFrontB64=b64;document.getElementById('ph-front').style.display='none';document.getElementById('pv-front').style.display='block';document.getElementById('pi-front').src=compressed;}else{uploadedSideB64=b64;document.getElementById('ph-side').style.display='none';document.getElementById('pv-side').style.display='block';document.getElementById('pi-side').src=compressed;}if(uploadedFrontB64||uploadedSideB64){document.getElementById('analyze-btn').style.display='block';document.getElementById('upload-hint').textContent=(uploadedFrontB64&&uploadedSideB64)?'✅ Both photos ready!':'⚡ 1 photo ready — add second for better rating';}document.getElementById('results-section').style.display='none';document.getElementById('error-box').style.display='none';};img.src=e.target.result;};reader.readAsDataURL(file);}
+
+async function startAnalysis(){
+  if(!uploadedFrontB64&&!uploadedSideB64)return;
+  if(analysesUsed>=FREE_ANALYSES){document.getElementById('app-screen').style.display='none';document.getElementById('paywall-screen').style.display='flex';return;}
+  document.getElementById('analyze-btn').disabled=true;
+  document.getElementById('loading-screen').style.display='block';
+  document.getElementById('results-section').style.display='none';
+  document.getElementById('error-box').style.display='none';
+  const startTime=Date.now();
+  const stepTimes=[5,15,30,50,70];
+  let timerInterval=setInterval(()=>{const elapsed=Math.floor((Date.now()-startTime)/1000);const el=document.getElementById('loading-timer');if(el)el.textContent=elapsed+'s';stepTimes.forEach((t,i)=>{if(elapsed>=t){const s=document.getElementById('step-'+(i+1));if(s&&!s.classList.contains('done')){s.classList.add('done');s.querySelector('.step-icon').textContent='✅';}}});},1000);
+  const photoCtx=(uploadedFrontB64&&uploadedSideB64)?'You have BOTH a front and side photo.':uploadedFrontB64?'Front-facing photo only.':'Side profile photo only.';
+  const prompt=`You are an elite forensic face analyst. Analyze THIS specific person's photo. ${photoCtx}\n\nPSL TIERS: "sub 3"=1-2.9|"sub 5"=3-4.4|"ltn"=4.5-5.2|"mtn"=5.3-6.2|"htn"=6.3-7.2|"chadlite"=7.3-8.4|"true adam"=8.5-10\n\nReturn ONLY valid JSON (no markdown, no extra text):\n{"currentScore":<1.0-10.0>,"potentialScore":<1.0-10.0>,"pslTier":<tier>,"potentialTier":<tier>,"vibeName":<phrase>,"verdict":<3-4 sentences about this person>,"percentile":<1-100>,"facialRatings":[{"name":"Jawline","score":<1-10>,"note":<specific>},{"name":"Eye Area","score":<1-10>,"note":<specific>},{"name":"Nose","score":<1-10>,"note":<specific>},{"name":"Lips","score":<1-10>,"note":<specific>},{"name":"Cheekbones","score":<1-10>,"note":<specific>},{"name":"Forehead","score":<1-10>,"note":<specific>},{"name":"Chin","score":<1-10>,"note":<specific>},{"name":"Harmony","score":<1-10>,"note":<specific>}],"haircuts":[{"name":<n>,"why":<why for this face>,"badge":"Best Match"},{"name":<n>,"why":<why>,"badge":"Great Option"},{"name":<n>,"why":<why>,"badge":"Worth Trying"}],"skinIssues":[{"emoji":<e>,"issue":<n>,"severity":"high"|"med"|"low","tip":<tip>,"products":[<p1>,<p2>]}],"glowUpTips":[{"title":<t>,"desc":<specific>,"impact":<1-100>},{"title":<t>,"desc":<specific>,"impact":<1-100>},{"title":<t>,"desc":<specific>,"impact":<1-100>},{"title":<t>,"desc":<specific>,"impact":<1-100>}]}`;
+  try{
+    const images=[];
+    if(uploadedFrontB64)images.push(uploadedFrontB64);
+    if(uploadedSideB64)images.push(uploadedSideB64);
+    const response=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({images,prompt})});
+    const data=await response.json();
+    if(!response.ok||data.error)throw new Error(data.error||'API_ERROR');
+    const text=data.text||'';
+    let result;
+    const attempts=[()=>JSON.parse(text.trim()),()=>{const s=text.indexOf('{'),e=text.lastIndexOf('}');return JSON.parse(text.slice(s,e+1));},()=>{const c=text.replace(/```json\s*/g,'').replace(/```\s*/g,'').trim();const s=c.indexOf('{'),e=c.lastIndexOf('}');return JSON.parse(c.slice(s,e+1));}];
+    for(const fn of attempts){try{result=fn();break;}catch(e){continue;}}
+    if(!result)throw new Error('PARSE');
+    clearInterval(timerInterval);
+    incrementAnalyses();
+    saveJournalEntry(result.currentScore||0,result.pslTier||'',result.vibeName||'');
+    document.getElementById('loading-screen').style.display='none';
+    renderResults(result);
+    if(analysesUsed>=FREE_ANALYSES){setTimeout(()=>{document.getElementById('app-screen').style.display='none';document.getElementById('paywall-screen').style.display='flex';},8000);}
+  }catch(err){
+    clearInterval(timerInterval);
+    document.getElementById('loading-screen').style.display='none';
+    document.getElementById('analyze-btn').disabled=false;
+    const errBox=document.getElementById('error-box');
+    errBox.textContent=err.message==='PARSE'?'⚠️ Analysis failed. Please try again.':'⚠️ Error: '+err.message;
+    errBox.style.display='block';
+  }
+}
+
+function scoreToTier(s){if(s>=8.5)return'true adam';if(s>=7.3)return'chadlite';if(s>=6.3)return'htn';if(s>=5.3)return'mtn';if(s>=4.5)return'ltn';if(s>=3.0)return'sub 5';return'sub 3';}
+function getTierColor(t){return({'sub 3':'#888','sub 5':'#e05c5c','ltn':'#e07f3a','mtn':'#d4b84a','htn':'#5cb85c','chadlite':'#3a9fd4','true adam':'#9b59b6'})[t]||'var(--orange)';}
+
+function renderResults(data){
+  document.getElementById('results-section').style.display='block';
+  document.getElementById('analyze-btn').disabled=false;
+  setTimeout(()=>document.getElementById('results-section').scrollIntoView({behavior:'smooth'}),100);
+  const cur=parseFloat(data.currentScore)||0,tier=data.pslTier||scoreToTier(cur),potTier=data.potentialTier||scoreToTier(parseFloat(data.potentialScore)||cur),pctile=data.percentile||Math.round((cur/10)*95+5),tc=getTierColor(tier);
+  if(uploadedFrontB64||uploadedSideB64)document.getElementById('result-photo').src='data:image/jpeg;base64,'+(uploadedFrontB64||uploadedSideB64);
+  animateDecimal('asc-psl',0,cur,1500);
+  document.getElementById('asc-tier').textContent=tier.toUpperCase();document.getElementById('asc-tier').style.color=tc;document.getElementById('asc-psl').style.color=tc;
+  document.getElementById('asc-percentile').textContent=pctile+'%';document.getElementById('asc-potential').textContent=potTier.toUpperCase();
+  const ratings=data.facialRatings||[],opt=ratings.filter(r=>r.score>=7).length,acc=ratings.filter(r=>r.score>=5&&r.score<7).length,bad=ratings.filter(r=>r.score<5).length;
+  document.getElementById('leg-opt').textContent=opt;document.getElementById('leg-acc').textContent=acc;document.getElementById('leg-bad').textContent=bad;drawDonut(opt,acc,bad);
+  document.getElementById('verdict-text').textContent=data.verdict||'';
+  const rg=document.getElementById('ratings-grid');rg.innerHTML='';
+  ratings.forEach(r=>{const s=parseFloat(r.score)||0,color=s>=7?'var(--green)':s>=5?'var(--orange)':'var(--red)';const d=document.createElement('div');d.className='rating-item';d.innerHTML=`<div class="rating-name">${r.name}</div><div class="rating-score" style="color:${color}">${s.toFixed(1)}</div><div class="rating-bar-wrap"><div class="rating-bar" style="background:${color}" data-w="${(s/10)*100}"></div></div><div style="font-size:12px;color:var(--text-dim);margin-top:4px">${r.note}</div>`;rg.appendChild(d);});
+  setTimeout(()=>document.querySelectorAll('.rating-bar').forEach(b=>b.style.width=b.dataset.w+'%'),300);
+  const hl=document.getElementById('haircuts-list');hl.innerHTML='';
+  (data.haircuts||[]).forEach((h,i)=>{const d=document.createElement('div');d.className='haircut-item';d.innerHTML=`<div style="width:48px;height:48px;background:var(--bg4);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">✂️</div><div style="flex:1"><div style="font-size:15px;font-weight:700;margin-bottom:4px;">${i+1}. ${h.name}</div><div style="font-size:13px;color:var(--text-muted);line-height:1.5;">${h.why}</div><div class="haircut-badge">${h.badge}</div></div>`;hl.appendChild(d);});
+  const sl=document.getElementById('skin-list');sl.innerHTML='';
+  (data.skinIssues||[]).forEach(s=>{const sc=s.severity==='high'?'severity-high':s.severity==='med'?'severity-med':'severity-low';const st=s.severity==='high'?'Needs Attention':s.severity==='med'?'Moderate':'Mild';const ph=(s.products||[]).map(p=>`<span class="skin-product-tag">${p}</span>`).join('');const d=document.createElement('div');d.className='skin-item';d.innerHTML=`<div class="skin-issue-header"><div class="skin-issue-name">${s.emoji} ${s.issue}</div><span class="skin-severity ${sc}">${st}</span></div><div class="skin-tip">${s.tip}</div>${ph?`<div class="skin-products">${ph}</div>`:''}`;sl.appendChild(d);});
+  const tl=document.getElementById('tips-list');tl.innerHTML='';
+  (data.glowUpTips||[]).forEach((t,i)=>{const d=document.createElement('div');d.className='tip-item';d.innerHTML=`<div class="tip-num">${String(i+1).padStart(2,'0')}</div><div style="flex:1"><div class="tip-title">${t.title}</div><div class="tip-desc">${t.desc}</div><div class="tip-impact"><span style="font-size:11px;color:var(--text-dim);font-weight:600;">IMPACT</span><div class="tip-impact-bar"><div class="tip-impact-fill" data-w="${t.impact}"></div></div><span style="font-size:11px;color:var(--green);font-weight:700">${t.impact}%</span></div></div>`;tl.appendChild(d);});
+  setTimeout(()=>document.querySelectorAll('.tip-impact-fill').forEach(b=>b.style.width=b.dataset.w+'%'),500);
+}
+
+function drawDonut(opt,acc,bad){const canvas=document.getElementById('donut-chart'),ctx=canvas.getContext('2d');const total=opt+acc+bad||1,cx=30,cy=30,r=24,lw=9;ctx.clearRect(0,0,60,60);let angle=-Math.PI/2;[{val:opt,color:'#4CAF50'},{val:acc,color:'#FFC107'},{val:bad,color:'#F44336'}].forEach(s=>{if(!s.val)return;const sweep=(s.val/total)*Math.PI*2;ctx.beginPath();ctx.arc(cx,cy,r,angle,angle+sweep);ctx.strokeStyle=s.color;ctx.lineWidth=lw;ctx.stroke();angle+=sweep+0.04;});}
+function animateDecimal(id,from,to,duration){const el=document.getElementById(id),start=performance.now();function update(now){const p=Math.min((now-start)/duration,1),ease=1-Math.pow(1-p,3);el.textContent=(from+(to-from)*ease).toFixed(1);if(p<1)requestAnimationFrame(update);}requestAnimationFrame(update);}
+
+function resetApp(){uploadedFrontB64=null;uploadedSideB64=null;['front','side'].forEach(s=>{document.getElementById('ph-'+s).style.display='block';document.getElementById('pv-'+s).style.display='none';document.getElementById('fi-'+s).value='';});document.getElementById('analyze-btn').style.display='none';document.getElementById('upload-hint').textContent='At least 1 photo required • Both = more accurate rating';document.getElementById('results-section').style.display='none';document.getElementById('loading-screen').style.display='none';document.getElementById('error-box').style.display='none';document.getElementById('loading-timer').textContent='0s';['step-1','step-2','step-3','step-4','step-5'].forEach(id=>{const el=document.getElementById(id);el.classList.remove('done');el.querySelector('.step-icon').textContent='⏳';});}
+
+function showTab(tab){const a=document.getElementById('analyze-view'),j=document.getElementById('journal-view'),ba=document.getElementById('btn-analyze'),bj=document.getElementById('btn-journal');if(tab==='analyze'){a.style.display='block';j.style.display='none';ba.className='top-btn active';bj.className='top-btn';}else{a.style.display='none';j.style.display='block';bj.className='top-btn active';ba.className='top-btn';renderJournal();}}
+
+function jKey(){return'glowup_journal_'+(currentUser?.id||'guest');}
+function saveJournalEntry(score,tier,vibe){const entries=JSON.parse(localStorage.getItem(jKey())||'[]');entries.push({date:new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short'}),ts:Date.now(),score,tier,vibe});if(entries.length>52)entries.splice(0,entries.length-52);localStorage.setItem(jKey(),JSON.stringify(entries));}
+function renderJournal(){const entries=JSON.parse(localStorage.getItem(jKey())||'[]');const empty=document.getElementById('journal-empty'),list=document.getElementById('journal-entries'),canvas=document.getElementById('journal-chart'),chartEmpty=document.getElementById('journal-chart-empty');if(!entries.length){empty.style.display='block';list.innerHTML='';canvas.style.display='none';chartEmpty.style.display='block';['journal-best','journal-latest','journal-delta'].forEach(id=>document.getElementById(id).textContent='—');return;}empty.style.display='none';canvas.style.display='block';chartEmpty.style.display='none';const scores=entries.map(e=>parseFloat(e.score));const best=Math.max(...scores),latest=scores[scores.length-1],delta=scores.length>1?(latest-scores[0]).toFixed(1):'0.0';document.getElementById('journal-best').textContent=best.toFixed(1);document.getElementById('journal-latest').textContent=latest.toFixed(1);const de=document.getElementById('journal-delta');de.textContent=(delta>0?'+':'')+delta;de.style.color=delta>=0?'var(--green)':'var(--red)';const ctx=canvas.getContext('2d'),W=canvas.offsetWidth||300,H=140;canvas.width=W;canvas.height=H;ctx.clearRect(0,0,W,H);const pad={t:20,r:20,b:30,l:36},cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;const minS=Math.max(0,Math.min(...scores)-1),maxS=Math.min(10,Math.max(...scores)+1);const xOf=i=>pad.l+(i/Math.max(scores.length-1,1))*cW,yOf=s=>pad.t+cH-((s-minS)/(maxS-minS))*cH;ctx.strokeStyle='#2a2a2a';ctx.lineWidth=1;for(let i=0;i<=4;i++){const y=pad.t+(i/4)*cH;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();ctx.fillStyle='#555';ctx.font='10px Arial';ctx.textAlign='right';ctx.fillText((maxS-(i/4)*(maxS-minS)).toFixed(1),pad.l-4,y+4);}ctx.beginPath();ctx.moveTo(xOf(0),yOf(scores[0]));scores.forEach((s,i)=>{if(i>0)ctx.lineTo(xOf(i),yOf(s));});ctx.lineTo(xOf(scores.length-1),H-pad.b);ctx.lineTo(xOf(0),H-pad.b);ctx.closePath();ctx.fillStyle='rgba(255,107,0,0.12)';ctx.fill();ctx.beginPath();ctx.strokeStyle='#FF6B00';ctx.lineWidth=2.5;ctx.lineJoin='round';scores.forEach((s,i)=>{i===0?ctx.moveTo(xOf(i),yOf(s)):ctx.lineTo(xOf(i),yOf(s));});ctx.stroke();scores.forEach((s,i)=>{ctx.beginPath();ctx.fillStyle='#FF6B00';ctx.arc(xOf(i),yOf(s),4,0,Math.PI*2);ctx.fill();});ctx.fillStyle='#555';ctx.font='9px Arial';ctx.textAlign='center';[0,Math.floor(entries.length/2),entries.length-1].filter((v,i,a)=>a.indexOf(v)===i).forEach(i=>ctx.fillText(entries[i].date,xOf(i),H-pad.b+14));list.innerHTML='';[...entries].reverse().forEach(e=>{const d=document.createElement('div');d.style.cssText='display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg3);border-radius:10px;border:1px solid var(--border);';d.innerHTML=`<div style="width:44px;height:44px;border-radius:8px;background:var(--bg4);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;">🤳</div><div style="flex:1;"><div style="font-size:12px;color:var(--text-muted);">${e.date}</div><div style="font-size:11px;color:#555;text-transform:uppercase;">${e.tier||''}</div></div><div style="font-family:'Bebas Neue',cursive;font-size:26px;color:${getTierColor(e.tier||'')};">${parseFloat(e.score).toFixed(1)}</div>`;list.appendChild(d);});}
+</script>
+</body>
+</html>
